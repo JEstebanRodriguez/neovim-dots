@@ -28,7 +28,11 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 
           # Get commits since last tag
-          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+          if [ "$LAST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s")
+          else
+            COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+          fi
 
           # Extract version parts
           VERSION=${LAST_TAG#v}

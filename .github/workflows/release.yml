@@ -68,27 +68,35 @@ jobs:
 
             if [[ "$REST" == *"BREAKING"* ]] || [[ "$REST" == *"!"* ]]; then
               HAS_BREAKING=true
-              BREAKING+=$(echo "• ${REST}" | sed 's/.*: //' | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+              MSG=$(echo "${REST}" | sed 's/.*: //')
+              BREAKING+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
             elif [[ "$REST" == "feat"* ]]; then
               HAS_FEATURE=true
+              MSG="${REST#*: }"
               if [[ "$REST" == *"plugin"* ]] || [[ "$REST" == *"plugins"* ]]; then
-                PLUGINS_ADDED+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+                PLUGINS_ADDED+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
               else
-                FEATURES+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+                FEATURES+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
               fi
             elif [[ "$REST" == "fix"* ]]; then
               HAS_FIX=true
-              FIXES+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+              MSG="${REST#*: }"
+              FIXES+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
             elif [[ "$REST" == *"remove"* ]] && [[ "$REST" == *"plugin"* ]]; then
-              PLUGINS_REMOVED+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+              MSG="${REST#*: }"
+              PLUGINS_REMOVED+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
             elif [[ "$REST" == "perf"* ]]; then
-              FEATURES+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+              MSG="${REST#*: }"
+              FEATURES+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
             elif [[ "$REST" == "docs"* ]]; then
-              FEATURES+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+              MSG="${REST#*: }"
+              FEATURES+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
             elif [[ "$REST" == "refactor"* ]]; then
-              FEATURES+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+              MSG="${REST#*: }"
+              FEATURES+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
             elif [[ "$REST" == "chore"* ]] || [[ "$REST" == "ci"* ]]; then
-              CHORES+=$(echo "• ${REST#*: }" | sed "s#$# ([$HASH]($REPO_URL/commit/$HASH))#")$'\n'
+              MSG="${REST#*: }"
+              CHORES+="• ${MSG} ([$HASH]($REPO_URL/commit/$HASH))"$'\n'
             fi
           done <<< "$COMMITS"
 

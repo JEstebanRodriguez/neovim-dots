@@ -1,0 +1,158 @@
+name: Create Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get last release tag
+        id: last-release
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "tag=$LAST_TAG" >> $GITHUB_OUTPUT
+          echo "Last tag: $LAST_TAG"
+
+      - name: Parse commits and generate release
+        id: release
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+          # Get commits since last tag
+          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+
+          # Extract version parts
+          VERSION=${LAST_TAG#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+
+          # Initialize variables
+          HAS_BREAKING=false
+          HAS_FEATURE=false
+          HAS_FIX=false
+
+          BREAKING=""
+          FEATURES=""
+          PLUGINS_ADDED=""
+          PLUGINS_REMOVED=""
+          FIXES=""
+          CHORES=""
+
+          # Parse each commit
+          while IFS= read -r line; do
+            if [[ -z "$line" ]]; then
+              continue
+            fi
+
+            if [[ "$line" == *"BREAKING"* ]] || [[ "$line" == *"!"* ]]; then
+              HAS_BREAKING=true
+              BREAKING+=$(echo "- ❌ ${line}" | sed 's/.*: //')$'\n'
+            elif [[ "$line" == "feat"* ]]; then
+              HAS_FEATURE=true
+              if [[ "$line" == *"plugin"* ]] || [[ "$line" == *"plugins"* ]]; then
+                PLUGINS_ADDED+=$(echo "- ✨ ${line#*: }")$'\n'
+              else
+                FEATURES+=$(echo "- ✨ ${line#*: }")$'\n'
+              fi
+            elif [[ "$line" == "fix"* ]]; then
+              HAS_FIX=true
+              FIXES+=$(echo "- 🐛 ${line#*: }")$'\n'
+            elif [[ "$line" == *"remove"* ]] && [[ "$line" == *"plugin"* ]]; then
+              PLUGINS_REMOVED+=$(echo "- 🗑️  ${line#*: }")$'\n'
+            elif [[ "$line" == "perf"* ]]; then
+              FEATURES+=$(echo "- ⚡ ${line#*: }")$'\n'
+            elif [[ "$line" == "docs"* ]]; then
+              FEATURES+=$(echo "- 📝 ${line#*: }")$'\n'
+            elif [[ "$line" == "refactor"* ]]; then
+              FEATURES+=$(echo "- 🔄 ${line#*: }")$'\n'
+            elif [[ "$line" == "chore"* ]] || [[ "$line" == "ci"* ]]; then
+              CHORES+=$(echo "- 🔧 ${line#*: }")$'\n'
+            fi
+          done <<< "$COMMITS"
+
+          # Calculate new version
+          if [ "$HAS_BREAKING" = true ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$HAS_FEATURE" = true ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "$HAS_FIX" = true ]; then
+            PATCH=$((PATCH + 1))
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          NEW_TAG="v$NEW_VERSION"
+
+          # Build changelog
+          CHANGELOG="# Release v$NEW_VERSION"$'\n\n'
+          CHANGELOG+="## 📋 Resumen de Cambios"$'\n\n'
+
+          if [ -n "$BREAKING" ]; then
+            CHANGELOG+="### ⚠️ Breaking Changes"$'\n'"$BREAKING"$'\n'
+          fi
+
+          if [ -n "$PLUGINS_ADDED" ]; then
+            CHANGELOG+="### 🎉 Nuevos Plugins"$'\n'"$PLUGINS_ADDED"$'\n'
+          fi
+
+          if [ -n "$PLUGINS_REMOVED" ]; then
+            CHANGELOG+="### 🗑️ Plugins Removidos"$'\n'"$PLUGINS_REMOVED"$'\n'
+          fi
+
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG+="### ✨ Nuevas Características"$'\n'"$FEATURES"$'\n'
+          fi
+
+          if [ -n "$FIXES" ]; then
+            CHANGELOG+="### 🐛 Fixes"$'\n'"$FIXES"$'\n'
+          fi
+
+          if [ -n "$CHORES" ]; then
+            CHANGELOG+="### 🔧 Chores"$'\n'"$CHORES"$'\n'
+          fi
+
+          CHANGELOG+="---"$'\n'"Made with ❤️"
+
+          # Escape newlines for output
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "body=$CHANGELOG" >> $GITHUB_OUTPUT
+
+      - name: Create Release Tag
+        run: |
+          git tag ${{ steps.release.outputs.tag }}
+          git push origin ${{ steps.release.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.release.outputs.tag }}
+          name: Release ${{ steps.release.outputs.version }}
+          body: ${{ steps.release.outputs.body }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Success Message
+        run: |
+          echo "✅ Release creado exitosamente!"
+          echo "📦 Version: ${{ steps.release.outputs.version }}"
+          echo "🏷️  Tag: ${{ steps.release.outputs.tag }}"

@@ -60,27 +60,27 @@ jobs:
 
             if [[ "$line" == *"BREAKING"* ]] || [[ "$line" == *"!"* ]]; then
               HAS_BREAKING=true
-              BREAKING+=$(echo "- ❌ ${line}" | sed 's/.*: //')$'\n'
+              BREAKING+=$(echo "• ${line}" | sed 's/.*: //')$'\n'
             elif [[ "$line" == "feat"* ]]; then
               HAS_FEATURE=true
               if [[ "$line" == *"plugin"* ]] || [[ "$line" == *"plugins"* ]]; then
-                PLUGINS_ADDED+=$(echo "- ✨ ${line#*: }")$'\n'
+                PLUGINS_ADDED+=$(echo "• ${line#*: }")$'\n'
               else
-                FEATURES+=$(echo "- ✨ ${line#*: }")$'\n'
+                FEATURES+=$(echo "• ${line#*: }")$'\n'
               fi
             elif [[ "$line" == "fix"* ]]; then
               HAS_FIX=true
-              FIXES+=$(echo "- 🐛 ${line#*: }")$'\n'
+              FIXES+=$(echo "• ${line#*: }")$'\n'
             elif [[ "$line" == *"remove"* ]] && [[ "$line" == *"plugin"* ]]; then
-              PLUGINS_REMOVED+=$(echo "- 🗑️  ${line#*: }")$'\n'
+              PLUGINS_REMOVED+=$(echo "• ${line#*: }")$'\n'
             elif [[ "$line" == "perf"* ]]; then
-              FEATURES+=$(echo "- ⚡ ${line#*: }")$'\n'
+              FEATURES+=$(echo "• ${line#*: }")$'\n'
             elif [[ "$line" == "docs"* ]]; then
-              FEATURES+=$(echo "- 📝 ${line#*: }")$'\n'
+              FEATURES+=$(echo "• ${line#*: }")$'\n'
             elif [[ "$line" == "refactor"* ]]; then
-              FEATURES+=$(echo "- 🔄 ${line#*: }")$'\n'
+              FEATURES+=$(echo "• ${line#*: }")$'\n'
             elif [[ "$line" == "chore"* ]] || [[ "$line" == "ci"* ]]; then
-              CHORES+=$(echo "- 🔧 ${line#*: }")$'\n'
+              CHORES+=$(echo "• ${line#*: }")$'\n'
             fi
           done <<< "$COMMITS"
 
@@ -102,34 +102,31 @@ jobs:
           NEW_TAG="v$NEW_VERSION"
 
           # Build changelog
-          CHANGELOG="# Release v$NEW_VERSION"$'\n\n'
-          CHANGELOG+="## 📋 Resumen de Cambios"$'\n\n'
+          CHANGELOG="v$NEW_VERSION"$'\n\n'
 
           if [ -n "$BREAKING" ]; then
-            CHANGELOG+="### ⚠️ Breaking Changes"$'\n'"$BREAKING"$'\n'
+            CHANGELOG+="Breaking Changes"$'\n'"$BREAKING"$'\n'
           fi
 
           if [ -n "$PLUGINS_ADDED" ]; then
-            CHANGELOG+="### 🎉 Nuevos Plugins"$'\n'"$PLUGINS_ADDED"$'\n'
+            CHANGELOG+="New Plugins"$'\n'"$PLUGINS_ADDED"$'\n'
           fi
 
           if [ -n "$PLUGINS_REMOVED" ]; then
-            CHANGELOG+="### 🗑️ Plugins Removidos"$'\n'"$PLUGINS_REMOVED"$'\n'
+            CHANGELOG+="Removed Plugins"$'\n'"$PLUGINS_REMOVED"$'\n'
           fi
 
           if [ -n "$FEATURES" ]; then
-            CHANGELOG+="### ✨ Nuevas Características"$'\n'"$FEATURES"$'\n'
+            CHANGELOG+="Features"$'\n'"$FEATURES"$'\n'
           fi
 
           if [ -n "$FIXES" ]; then
-            CHANGELOG+="### 🐛 Fixes"$'\n'"$FIXES"$'\n'
+            CHANGELOG+="Bug Fixes"$'\n'"$FIXES"$'\n'
           fi
 
           if [ -n "$CHORES" ]; then
-            CHANGELOG+="### 🔧 Chores"$'\n'"$CHORES"$'\n'
+            CHANGELOG+="Chores"$'\n'"$CHORES"$'\n'
           fi
-
-          CHANGELOG+="---"$'\n'"Made with ❤️"
 
           # Escape newlines for output
           CHANGELOG="${CHANGELOG//'%'/'%25'}"

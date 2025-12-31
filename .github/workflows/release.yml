@@ -27,11 +27,15 @@ jobs:
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 
+          # Get repository URL for commit links
+          REPO_URL=$(git config --get remote.origin.url | sed 's/.git$//')
+          REPO_URL=$(echo "$REPO_URL" | sed 's/git@github.com:/https:\/\/github.com\//')
+
           # Get commits since last tag
           if [ "$LAST_TAG" = "v0.0.0" ]; then
-            COMMITS=$(git log --pretty=format:"%s")
+            COMMITS=$(git log --pretty=format:"%h %s")
           else
-            COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+            COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%h %s")
           fi
 
           # Extract version parts
@@ -58,29 +62,33 @@ jobs:
               continue
             fi
 
-            if [[ "$line" == *"BREAKING"* ]] || [[ "$line" == *"!"* ]]; then
+            # Extract hash and message
+            HASH=$(echo "$line" | awk '{print $1}')
+            REST=$(echo "$line" | cut -d' ' -f2-)
+
+            if [[ "$REST" == *"BREAKING"* ]] || [[ "$REST" == *"!"* ]]; then
               HAS_BREAKING=true
-              BREAKING+=$(echo "• ${line}" | sed 's/.*: //')$'\n'
-            elif [[ "$line" == "feat"* ]]; then
+              BREAKING+=$(echo "• ${REST}" | sed 's/.*: //' | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
+            elif [[ "$REST" == "feat"* ]]; then
               HAS_FEATURE=true
-              if [[ "$line" == *"plugin"* ]] || [[ "$line" == *"plugins"* ]]; then
-                PLUGINS_ADDED+=$(echo "• ${line#*: }")$'\n'
+              if [[ "$REST" == *"plugin"* ]] || [[ "$REST" == *"plugins"* ]]; then
+                PLUGINS_ADDED+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
               else
-                FEATURES+=$(echo "• ${line#*: }")$'\n'
+                FEATURES+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
               fi
-            elif [[ "$line" == "fix"* ]]; then
+            elif [[ "$REST" == "fix"* ]]; then
               HAS_FIX=true
-              FIXES+=$(echo "• ${line#*: }")$'\n'
-            elif [[ "$line" == *"remove"* ]] && [[ "$line" == *"plugin"* ]]; then
-              PLUGINS_REMOVED+=$(echo "• ${line#*: }")$'\n'
-            elif [[ "$line" == "perf"* ]]; then
-              FEATURES+=$(echo "• ${line#*: }")$'\n'
-            elif [[ "$line" == "docs"* ]]; then
-              FEATURES+=$(echo "• ${line#*: }")$'\n'
-            elif [[ "$line" == "refactor"* ]]; then
-              FEATURES+=$(echo "• ${line#*: }")$'\n'
-            elif [[ "$line" == "chore"* ]] || [[ "$line" == "ci"* ]]; then
-              CHORES+=$(echo "• ${line#*: }")$'\n'
+              FIXES+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
+            elif [[ "$REST" == *"remove"* ]] && [[ "$REST" == *"plugin"* ]]; then
+              PLUGINS_REMOVED+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
+            elif [[ "$REST" == "perf"* ]]; then
+              FEATURES+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
+            elif [[ "$REST" == "docs"* ]]; then
+              FEATURES+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
+            elif [[ "$REST" == "refactor"* ]]; then
+              FEATURES+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
+            elif [[ "$REST" == "chore"* ]] || [[ "$REST" == "ci"* ]]; then
+              CHORES+=$(echo "• ${REST#*: }" | sed "s/$/ ([$HASH]($REPO_URL\/commit\/$HASH))/")$'\n'
             fi
           done <<< "$COMMITS"
 

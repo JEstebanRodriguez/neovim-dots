@@ -177,4 +177,8 @@ return {
 	-- 	"vimpostor/vim-tpipeline",
 	-- },
 	{ "nvim-mini/mini.nvim", version = "*" },
+	{
+		"tronikelis/ts-autotag.nvim",
+		config = true,
+	},
 }
